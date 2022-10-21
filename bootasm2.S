@@ -43,13 +43,34 @@ cons_writeline:
     call    cons_write_crlf
     ret    
 
+
+#define a   4
+#define b 	6
+
+#define x  -4
+#define	y  -2
+
 # Output the 16-bit value in BX to the screen has a 4 digit hex value	
 #
 # Input:  BX = Value to output	
 
-HexChars:	.ascii "0123456789ABCDEF"
+cons_write_int_hex:
+    # get value passed over
+    pushw 	%bp	
+	movw	%sp, %bp
+	subw	$4, %sp
+    # movw b(%bp), %bx
+    cmp $10, %bx
+    je cons_write_int
 
 cons_write_hex:
+#	pushw 	%bp	
+#	movw	%sp, %bp
+#	subw	$4, %sp
+
+    movw a(%bp), %bx
+
+    # \/ actual function start
 	movw	$4, %cx
     movb    $0x0E, %ah
 	
@@ -60,13 +81,23 @@ hexloop:
     movb    HexChars(%si), %al
 	int		$0x10
 	loop	hexloop
-	ret
+	
+    movw 	%bp, %sp
+    popw	%bp
+    ret $4
+HexChars:	.ascii "0123456789ABCDEF"
 
 # Output the value in BX as an unsigned integer
 #
 # Input: BX = Value to output
 	
 cons_write_int:
+#	pushw 	%bp	
+#	movw	%sp, %bp
+#	subw	$4, %sp
+
+    movw a(%bp), %bx
+    # \/ actual function starts here
     movw    $IntBuffer + 4, %si
     movw    %bx, %ax
 	
@@ -81,7 +112,10 @@ getdigit:
 	jne		getdigit
 	inc		%si
 	call	cons_write
-	ret
+	
+    movw 	%bp, %sp
+    popw	%bp
+    ret $4
 	
 IntBuffer:   .string "     "
 
@@ -107,25 +141,43 @@ harddrive:
 finish:
     call    cons_writeline
 
+    # Set up stack
+    xorw %ax, %ax
+    movw %ax, %ds # -> data segment
+    movw %ax, %es # -> extra segment
+    movw %ax, %ss # -> stack segment
+
+    movw $0, %sp # set stack pointer to zero, the top of the segment
+
     # Test cons_write_int and cons_write_hex
 
-    movw    $65535, %bx         # Display numbers in hex
-    call    cons_write_hex
+    # Display numbers in hex
+    pushw    $65535
+    movw    $16, %bx
+    # call    cons_write_int_hex
+    call    cons_write_int_hex
     call    cons_write_crlf
-    movw    $4660, %bx
-    call    cons_write_hex
+    pushw    $4660
+     movw    $16, %bx
+    call    cons_write_int_hex
     call    cons_write_crlf
-    movw    $0, %bx
-    call    cons_write_hex
+    pushw    $0
+     movw    $16, %bx
+    call    cons_write_int_hex
     call    cons_write_crlf
-    movw    $65535, %bx         # Display unsigned short numbers
-    call    cons_write_int
+    
+   # Display unsigned short numbers
+    push    $65535
+    movw    $10, %bx
+    call    cons_write_int_hex
     call    cons_write_crlf
-    movw    $1234, %bx
-    call    cons_write_int
+    push    $1234
+    movw    $10, %bx
+    call    cons_write_int_hex
     call    cons_write_crlf
-    movw    $0, %bx
-    call    cons_write_int
+    push    $0
+    movw    $10, %bx
+    call    cons_write_int_hex
     call    cons_write_crlf
 
 endless_loop:                   # Loop forever more
